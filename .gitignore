@@ -39,3 +39,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python backend
+__pycache__/
+*.pyc
+.venv/
+venv/
+env_*/
+*.env
+.env.*
+!.env.example
+
+# large model / dataset artifacts — never commit these
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+/backend/models/
+/backend/data/
