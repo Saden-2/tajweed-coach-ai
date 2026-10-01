@@ -10,6 +10,18 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
+**ملاحظة إصدار بايثون:** الباكند الأساسي (مسار `MockModelAdapter`، أربع
+مكتبات فقط: fastapi/uvicorn/python-multipart/pydantic) يشتغل على بايثون
+3.9+ عادي. لكن مسار الموديل الحقيقي (`MuaalemModelAdapter`) يحتاج
+**بايثون 3.10 أو أحدث إلزاميًا** - مكتبات `quran-muaalem` و
+`quran-transcript` و`numba>=0.61.2` كلها معلنة رسميًا بـ PyPI أنها
+`Requires-Python >=3.10` (تم التأكد مباشرة من صفحاتها على PyPI)، فـ
+`pip install` يفشل بصمت تقريبًا (`Could not find a version that
+satisfies the requirement ... (from versions: none)`) لو جربتها على
+3.9. استخدم بيئة افتراضية منفصلة ببايثون 3.10+ (مثلاً عبر
+`py -3.11 -m venv venv311` على ويندوز) لمسار الموديل الحقيقي، بدل ما
+تغيّر بايثون 3.9 الافتراضي بجهازك (قد يكسر مشاريع ثانية تعتمد عليه).
+
 ## الـ Endpoints
 
 - `GET /health` — فحص إن السيرفر شغّال.
