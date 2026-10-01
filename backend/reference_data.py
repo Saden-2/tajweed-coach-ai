@@ -13,6 +13,8 @@ starting points; keep the *shape* below (surah, ayah, ayah_number_in_surah,
 total_ayat_in_surah, words[]) so the rest of the code doesn't need to change.
 """
 
+from __future__ import annotations
+
 from typing import TypedDict
 
 
