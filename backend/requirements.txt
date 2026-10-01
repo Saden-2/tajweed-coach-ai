@@ -2,3 +2,15 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 python-multipart>=0.0.9
 pydantic>=2.7
+# --- Real model adapter (MuaalemModelAdapter) ---
+# Only needed once get_adapter() is flipped from MockModelAdapter to
+# MuaalemModelAdapter (see model_adapter.py). Not required for the mock
+# demo path. CPU works (just slower); torch auto-detects a CUDA GPU if
+# one is present, see MuaalemModelAdapter.__init__.
+torch>=2.0
+transformers>=4.40
+quran-muaalem
+quran-transcript
+librosa
+numba>=0.61.2
+diff-match-patch

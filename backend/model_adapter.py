@@ -62,6 +62,7 @@ import io
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Literal
 
 from reference_data import AyahRef
@@ -385,10 +386,37 @@ class MuaalemModelAdapter(ModelAdapter):
         return AnalysisResult(score=score, words=words)
 
 
+@lru_cache(maxsize=1)
 def get_adapter() -> ModelAdapter:
     """
-    Single place that decides which adapter the API uses. Flip this to
-    MuaalemModelAdapter() once `_sifat_to_words` is implemented and
-    validated - nothing else in the API needs to change.
+    Single place that decides which adapter the API uses.
+
+    @lru_cache makes this a singleton: main.py calls get_adapter() on
+    every request, and MuaalemModelAdapter.__init__ loads a ~660M
+    parameter model (from disk/HuggingFace Hub) - without caching, that
+    full load would re-run on every single recording, which is both very
+    slow and would re-download/re-initialize the model repeatedly. With
+    the cache, the model loads once (on the first /api/analyze call) and
+    is reused after that. A failed load is cached too, so a broken
+    MuaalemModelAdapter does not retry-and-fail on every request - it
+    falls back to MockModelAdapter once and stays there for the life of
+    this process (restart the server after fixing the underlying issue).
+
+    Flipped to the real MuaalemModelAdapter (2 Oct 2026) now that the
+    quran_transcript "ال" crash is patched (qt_alif_patch.py) and
+    _sifat_to_words() is implemented. The warn/error split is still an
+    unclaibrated first pass (see its docstring) - every mismatch currently
+    shows as "error", no "warn" tier yet. If the real adapter fails to
+    load here (missing deps, no model download, etc.), fall back to
+    MockModelAdapter so the rest of the app still works.
     """
-    return MockModelAdapter()
+    try:
+        return MuaalemModelAdapter()
+    except Exception:
+        logger.exception(
+            "MuaalemModelAdapter failed to load - falling back to "
+            "MockModelAdapter. Run `pip install -r requirements.txt` "
+            "(see the real-model-adapter section) and check the error "
+            "above."
+        )
+        return MockModelAdapter()
