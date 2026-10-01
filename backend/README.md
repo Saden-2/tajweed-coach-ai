@@ -38,12 +38,24 @@ curl -F "audio=@sample.wav" "http://localhost:8000/api/analyze?surah=1&ayah=1"
 
 1. شغّل `../colab/tajweed_baseline_eval.ipynb` على Colab/Kaggle (GPU) للتأكد
    من أداء `quran-muaalem` الأساسي على عيّنة من `qdat_bench`.
-2. ابنِ ونفّذ طبقة "تفسير الأحكام" (sifat → حكم تجويد مسمّى) بناءً على نتائج
-   التحقق البشري (راجع `tajweed-coach-validation-plan.md` بالمشروع) — هذي
-   الطبقة موجودة كـ TODO صريح في `MuaalemModelAdapter._sifat_to_words`
-   بملف `model_adapter.py`، وما تشتغل لين تُبنى وتُختبر فعليًا.
+2. `MuaalemModelAdapter._sifat_to_words` **منفّذة فعليًا** (تستخدم
+   `quran_muaalem.explain.expalin_sifat` + `diff_match_patch` لمحاذاة
+   الفونيمات ومقارنة صفات التجويد)، لكن قاعدة "أي اختلاف = error" فيها
+   أولية وغير معايرة — تحتاج ضبط عتبة warn/error بناءً على نتائج التحقق
+   البشري (راجع `tajweed-coach-validation-plan.md` بالمشروع) قبل الوثوق
+   فيها لمستخدمين حقيقيين.
 3. لما تصير جاهزة ومتحقق منها: غيّر سطر واحد بس في `get_adapter()` من
    `MockModelAdapter()` إلى `MuaalemModelAdapter()`. باقي الكود ما يتغيّر.
+
+## باغ مكتشف ومُصلَح: quran_transcript وألف "ال"
+
+اكتُشف (1 أكتوبر 2026) إن `quran_transcript.quran_phonetizer` كان ينهار
+(IndexError/ValueError) على أي آية فيها "ال" التعريف — أي تقريبًا كل
+القرآن. السبب والإصلاح الكامل موثّقان في `qt_alif_patch.py` (يُطبَّق
+تلقائيًا داخل `MuaalemModelAdapter.__init__`) وبمستند القرارات
+(`tajweed-coach-decisions.md`). تم التحقق على سورة الفاتحة كاملة (100%
+نجاح بعد الإصلاح) بدون كسر أي نتيجة كانت صحيحة من قبل. هذا حل عقبة
+الانهيار فقط — المعايرة بالنقطة 2 أعلاه لسه مطلوبة قبل أي استخدام حقيقي.
 
 ## اللي ناقص لمنتج حقيقي (خارج نطاق هذا الهيكل)
 

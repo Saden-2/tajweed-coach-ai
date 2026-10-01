@@ -32,6 +32,21 @@ validation plan) before this adapter is trusted for real users. Until
 that calibration happens, keep using MockModelAdapter for anything
 user-facing.
 
+KNOWN UPSTREAM BUG (now worked around): `quran_transcript.quran_phonetizer`
+used to crash (IndexError/ValueError) on almost any real ayah, because of
+two indexing bugs around how it handles the alif in the definite article
+"ال" (root-caused by reading the installed package source directly - see
+`qt_alif_patch.py` and `tajweed-coach-decisions.md` for the full
+analysis). This adapter now applies a local, reviewed patch
+(`qt_alif_patch.apply()`) at construction time that fixes both crashes
+without touching the installed package, verified against the full text
+of Al-Fatiha (all 7 ayat, previously 100% crashing, now 100% passing)
+plus a battery of other ayat. The patch only fills in gaps the upstream
+code already left as "no override" for non-crashing inputs - verified
+byte-for-byte identical sifat output for everything that worked before.
+This removes the crash blocker; the calibration gap above is separate
+and still open.
+
 `_sifat_to_words()` does NOT reimplement phoneme alignment from scratch -
 it reuses `quran_muaalem.explain.expalin_sifat`, the same alignment/
 comparison function the quran-muaalem authors ship in their own Gradio
@@ -224,6 +239,15 @@ class MuaalemModelAdapter(ModelAdapter):
                 "(plus `apt-get install -y ffmpeg libsndfile1 portaudio19-dev`) "
                 "on a machine with a GPU, or keep using MockModelAdapter here."
             ) from exc
+
+        # Local fix for the quran_transcript "ال"/alif crash - see the
+        # KNOWN UPSTREAM BUG note in this module's docstring and
+        # qt_alif_patch.py for the full root-cause analysis. Must run
+        # before any quran_phonetizer() call (analyze() and
+        # _sifat_to_words() below both call it).
+        from qt_alif_patch import apply as _apply_qt_alif_patch
+
+        _apply_qt_alif_patch()
 
         import torch
 
