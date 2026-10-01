@@ -193,16 +193,22 @@ export default function QuranText({ surahNumber }: QuranTextProps) {
                     const isEnd = word.charTypeName === "end";
 
                     if (isEnd) {
+                      // "text_qpc_hafs" isn't a real field in this API/SDK
+                      // version - codeV2 already carries the correct QCF v2
+                      // glyph for the ayah-end ornament, same as every other
+                      // word on the page, so render it the same way instead
+                      // of falling back to plain (garbled) Arabic text.
                       return (
                         <span
                           key={word.id}
                           style={{
-                            fontFamily: "UthmanicHafs, serif",
+                            fontFamily: `p${currentPage}-v2`,
                             fontSize: "30px",
                           }}
-                        >
-                          {word.textQpcHafs || word.text || ""}
-                        </span>
+                          dangerouslySetInnerHTML={{
+                            __html: word.codeV2 || word.text || "",
+                          }}
+                        />
                       );
                     }
 
@@ -215,11 +221,7 @@ export default function QuranText({ surahNumber }: QuranTextProps) {
                           lineHeight: 1.7,
                         }}
                         dangerouslySetInnerHTML={{
-                          __html:
-                            word.codeV2 ||
-                            word.textQpcHafs ||
-                            word.text ||
-                            "",
+                          __html: word.codeV2 || word.text || "",
                         }}
                       />
                     );
