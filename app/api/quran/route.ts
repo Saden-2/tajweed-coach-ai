@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@quranjs/api/server";
+import { isValidChapterId } from "@quranjs/api";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,6 +28,13 @@ export async function GET(request: NextRequest) {
     if (!surah) {
       const chapters = await client.content.v4.chapters.list();
       return NextResponse.json(chapters);
+    }
+
+    if (!isValidChapterId(surah)) {
+      return NextResponse.json(
+        { error: `Invalid surah number: ${surah}` },
+        { status: 400 }
+      );
     }
 
     const verses = await client.content.v4.verses.byChapter(surah, {
