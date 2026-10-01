@@ -15,6 +15,8 @@ See README.md for the full contract and what's real vs. mocked.
 
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -37,9 +39,14 @@ app.add_middleware(
 class WordOut(BaseModel):
     id: str
     text: str
-    status: str | None = None  # None on the /api/ayah endpoint (no analysis yet)
-    issue_title: str | None = None
-    issue_description: str | None = None
+    # Pydantic resolves these annotations at class-creation time to build
+    # its validators, so `from __future__ import annotations` alone does
+    # NOT make `X | None` work on Python < 3.10 here (unlike plain
+    # functions/dataclasses elsewhere in this project) - using
+    # `Optional[str]` keeps this working on Python 3.9 too.
+    status: Optional[str] = None  # None on the /api/ayah endpoint (no analysis yet)
+    issue_title: Optional[str] = None
+    issue_description: Optional[str] = None
 
 
 class AyahOut(BaseModel):
