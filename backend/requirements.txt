@@ -12,5 +12,6 @@ transformers>=4.40
 quran-muaalem
 quran-transcript
 librosa
+av  # decodes webm/opus (MediaRecorder's format) - bundles its own ffmpeg, no system install needed
 numba>=0.61.2
 diff-match-patch

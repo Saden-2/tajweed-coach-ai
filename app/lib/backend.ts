@@ -6,12 +6,13 @@
  * which matches `uvicorn main:app --reload --port 8000` from
  * backend/README.md.
  *
- * Scope note: the backend only has Al-Fatiha ayah 1 (the Basmala) seeded
- * in reference_data.py right now - that's a known, documented gap (see
- * tajweed-coach-decisions.md), not a bug here. ANALYSIS_SUPPORTED() below
- * is the single source of truth the UI uses to decide when to offer
- * recording/analysis vs. show a "not available yet" state, so this stays
- * correct automatically once more ayat are added server-side.
+ * Scope note (updated): analysis is no longer limited to one hardcoded
+ * ayah. The frontend fetches full Uthmani text for any ayah itself (via
+ * our own /api/quran route - see RecitationPanel.tsx) and sends that
+ * ayah's words straight to POST /api/analyze alongside the audio, so the
+ * backend doesn't need its own per-ayah reference data to analyze
+ * whatever ayah the learner chose to recite. analysisSupported() just
+ * checks that we actually have a non-empty word list to send.
  */
 
 const BACKEND_URL =
@@ -28,14 +29,6 @@ export type AnalyzedWord = {
   issue_description: string | null;
 };
 
-export type AyahData = {
-  surah_number: number;
-  surah_name_ar: string;
-  ayah_number: number;
-  total_ayat: number;
-  words: AnalyzedWord[];
-};
-
 export type AnalysisResult = {
   score: number;
   correct_count: number;
@@ -46,44 +39,21 @@ export type AnalysisResult = {
 
 export class BackendError extends Error {}
 
-/** Only Al-Fatiha (1), ayah 1 is seeded server-side for now. */
-export function analysisSupported(surahNumber: number, ayahNumber: number) {
-  return surahNumber === 1 && ayahNumber === 1;
-}
-
-export async function fetchAyah(
-  surahNumber: number,
-  ayahNumber: number
-): Promise<AyahData> {
-  let response: Response;
-  try {
-    response = await fetch(
-      `${BACKEND_URL}/api/ayah/${surahNumber}/${ayahNumber}`
-    );
-  } catch {
-    throw new BackendError(
-      "تعذر الوصول لخادم التحليل. تأكد إن الباكند شغّال (uvicorn على المنفذ 8000)."
-    );
-  }
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new BackendError("هذه الآية غير متوفرة بعد في محرك التحليل.");
-    }
-    throw new BackendError("تعذر تحميل بيانات الآية من خادم التحليل.");
-  }
-
-  return response.json();
+/** True as long as we have real ayah text to send for analysis. */
+export function analysisSupported(words: { id: string; text: string }[]) {
+  return words.length > 0;
 }
 
 export async function analyzeRecitation(
   surahNumber: number,
   ayahNumber: number,
-  audioBlob: Blob
+  audioBlob: Blob,
+  words: { id: string; text: string }[]
 ): Promise<AnalysisResult> {
   const form = new FormData();
   const extension = audioBlob.type.includes("webm") ? "webm" : "wav";
   form.append("audio", audioBlob, `recitation.${extension}`);
+  form.append("words", JSON.stringify(words));
 
   let response: Response;
   try {
@@ -99,10 +69,7 @@ export async function analyzeRecitation(
 
   if (!response.ok) {
     if (response.status === 400) {
-      throw new BackendError("لم يتم تسجيل أي صوت. حاول مرة أخرى.");
-    }
-    if (response.status === 404) {
-      throw new BackendError("هذه الآية غير متوفرة بعد في محرك التحليل.");
+      throw new BackendError("لم يتم تسجيل أي صوت، أو بيانات الآية ناقصة. حاول مرة أخرى.");
     }
     throw new BackendError("حدث خطأ أثناء تحليل التلاوة.");
   }

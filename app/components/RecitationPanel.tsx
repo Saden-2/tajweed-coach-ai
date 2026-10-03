@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   analysisSupported,
   analyzeRecitation,
-  fetchAyah,
   type AnalysisResult,
   type AnalyzedWord,
   BackendError,
@@ -17,11 +16,25 @@ type RecitationPanelProps = {
 
 type Stage = "idle" | "recording" | "analyzing" | "done" | "error";
 
-// Only Al-Fatiha ayah 1 is wired server-side for now (see backend's
-// reference_data.py + tajweed-coach-decisions.md). Hardcoding it here
-// keeps the scope explicit instead of guessing which ayah the mushaf
-// page viewer happens to be showing.
-const ANALYSIS_AYAH = 1;
+// Raw shape returned by our own /api/quran route (see app/api/quran/route.ts).
+// textUthmani is the plain, phonetizable Arabic text (what the backend needs
+// to compare against) - separate from codeV2, which is only a font-specific
+// glyph code used to render the mushaf page and is NOT real text.
+type RawWord = {
+  id: number;
+  position: number;
+  charTypeName: string;
+  text?: string;
+  codeV2?: string;
+  textUthmani?: string;
+};
+
+type RawAyah = {
+  id: number;
+  verseNumber: number;
+  verseKey: string;
+  words: RawWord[];
+};
 
 const STATUS_LABEL_AR: Record<string, string> = {
   correct: "صحيح",
@@ -45,47 +58,58 @@ export default function RecitationPanel({
   surahNumber,
   isArabic,
 }: RecitationPanelProps) {
-  const supported = analysisSupported(surahNumber, ANALYSIS_AYAH);
+  // Every ayah of the current surah, loaded once per surah. This is the
+  // SAME /api/quran route the mushaf viewer (QuranText) uses, just also
+  // asking for textUthmani (plain, phonetizable text) alongside codeV2
+  // (the font glyph code QuranText renders with) - so recitation analysis
+  // is no longer limited to the one ayah hardcoded server-side before.
+  const [surahAyahs, setSurahAyahs] = useState<RawAyah[]>([]);
+  const [surahLoadError, setSurahLoadError] = useState<string | null>(null);
+  const [selectedAyah, setSelectedAyah] = useState(1);
 
-  const [ayahWords, setAyahWords] = useState<AnalyzedWord[] | null>(null);
-  const [ayahLoadError, setAyahLoadError] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("idle");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Load the reference ayah (for the baseline word list) once we land on
-  // a surah/ayah combination the backend actually supports.
+  function logDebug(msg: string) {
+    const line = `${new Date().toLocaleTimeString()} ${msg}`;
+    setDebugLog((prev) => [...prev.slice(-7), line]);
+  }
+
+  // Load every ayah of the surah once (same data source the mushaf page
+  // already uses), so the learner can pick ANY ayah to practice instead of
+  // being stuck on one hardcoded ayah.
   useEffect(() => {
-    if (!supported) {
-      setAyahWords(null);
-      return;
-    }
-
     let cancelled = false;
-    setAyahLoadError(null);
+    setSurahLoadError(null);
+    setSelectedAyah(1);
 
-    fetchAyah(surahNumber, ANALYSIS_AYAH)
-      .then((ayah) => {
-        if (!cancelled) setAyahWords(ayah.words);
+    fetch(`/api/quran?surah=${surahNumber}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("failed to load surah");
+        return res.json();
       })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setAyahWords(null);
-        setAyahLoadError(
-          err instanceof BackendError
-            ? err.message
-            : "تعذر تحميل بيانات الآية من خادم التحليل."
-        );
+      .then((result: RawAyah[]) => {
+        if (!cancelled) setSurahAyahs(result);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSurahAyahs([]);
+          setSurahLoadError(
+            "تعذر تحميل نص السورة. تأكد من اتصال الإنترنت وحاول مرة أخرى."
+          );
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [supported, surahNumber]);
+  }, [surahNumber]);
 
   // Always release the microphone, even if the component unmounts mid-
   // recording (e.g. the user navigates back to the surah list).
@@ -95,9 +119,36 @@ export default function RecitationPanel({
     };
   }, []);
 
+  const totalAyat = surahAyahs.length;
+  const currentRawAyah = surahAyahs.find((a) => a.verseNumber === selectedAyah);
+
+  // Only real recited words carry phonetizable text - charTypeName "word".
+  // Other entries (e.g. the ayah-end ornament glyph) are display-only and
+  // have no textUthmani worth sending to the backend.
+  const currentWords: AnalyzedWord[] = (currentRawAyah?.words ?? [])
+    .filter((w) => w.charTypeName === "word" && w.textUthmani)
+    .map((w) => ({
+      id: String(w.id),
+      text: w.textUthmani as string,
+      status: null,
+      issue_title: null,
+      issue_description: null,
+    }));
+
+  const supported = analysisSupported(currentWords);
+
+  function goToAyah(next: number) {
+    if (next < 1 || next > totalAyat) return;
+    setSelectedAyah(next);
+    setAnalysis(null);
+    setErrorMessage(null);
+    setStage("idle");
+  }
+
   async function startRecording() {
     setErrorMessage(null);
     setAnalysis(null);
+    logDebug(`startRecording() called (ayah ${selectedAyah})`);
 
     let stream: MediaStream;
     try {
@@ -131,6 +182,7 @@ export default function RecitationPanel({
     recorder.onstop = () => {
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+      logDebug("recorder.onstop fired");
       void handleRecordingStopped(recorder.mimeType);
     };
 
@@ -148,6 +200,7 @@ export default function RecitationPanel({
       type: mimeType || "audio/webm",
     });
     chunksRef.current = [];
+    logDebug(`handleRecordingStopped: blob size=${blob.size} type=${mimeType}`);
 
     if (blob.size === 0) {
       setErrorMessage("لم يتم تسجيل أي صوت. حاول مرة أخرى.");
@@ -156,15 +209,19 @@ export default function RecitationPanel({
     }
 
     setStage("analyzing");
+    logDebug(`calling analyzeRecitation() for ayah ${selectedAyah} (${currentWords.length} words)...`);
     try {
       const result = await analyzeRecitation(
         surahNumber,
-        ANALYSIS_AYAH,
-        blob
+        selectedAyah,
+        blob,
+        currentWords.map((w) => ({ id: w.id, text: w.text }))
       );
+      logDebug(`got result: score=${result.score}`);
       setAnalysis(result);
       setStage("done");
     } catch (err) {
+      logDebug(`ERROR: ${err instanceof Error ? err.message : String(err)}`);
       setErrorMessage(
         err instanceof BackendError
           ? err.message
@@ -183,17 +240,47 @@ export default function RecitationPanel({
     void startRecording();
   }
 
-  const displayWords = analysis?.words ?? ayahWords ?? [];
+  const displayWords = analysis?.words ?? currentWords;
 
   return (
     <>
       {/* Recitation */}
       <section className="mt-5 rounded-[28px] border border-[#e4e0d5] bg-white p-6 text-center shadow-sm md:p-8">
-        {!supported && (
+        {/* Ayah picker - lets the learner practice whichever ayah they want,
+            not just one hardcoded ayah. */}
+        {totalAyat > 0 && (
+          <div className="mb-4 flex items-center justify-center gap-3">
+            <button
+              onClick={() => goToAyah(selectedAyah - 1)}
+              disabled={selectedAyah <= 1}
+              className="rounded-full bg-[#f1efe6] px-3 py-1 text-sm font-bold text-[#187762] transition disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={isArabic ? "الآية السابقة" : "Previous ayah"}
+            >
+              {isArabic ? "◀" : "◁"}
+            </button>
+
+            <p className="text-sm font-semibold text-gray-600">
+              {isArabic
+                ? `الآية ${selectedAyah} من ${totalAyat}`
+                : `Ayah ${selectedAyah} of ${totalAyat}`}
+            </p>
+
+            <button
+              onClick={() => goToAyah(selectedAyah + 1)}
+              disabled={selectedAyah >= totalAyat}
+              className="rounded-full bg-[#f1efe6] px-3 py-1 text-sm font-bold text-[#187762] transition disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={isArabic ? "الآية التالية" : "Next ayah"}
+            >
+              {isArabic ? "▶" : "▷"}
+            </button>
+          </div>
+        )}
+
+        {!supported && !surahLoadError && (
           <p className="mb-4 text-sm font-semibold text-gray-500">
             {isArabic
-              ? "تحليل التجويد الآلي متاح حاليًا فقط لسورة الفاتحة (الآية الأولى) — نسخة تجريبية أولى."
-              : "Automatic tajweed analysis is currently available for Al-Fatiha, ayah 1 only — early preview."}
+              ? "جاري تحميل نص الآية..."
+              : "Loading ayah text..."}
           </p>
         )}
 
@@ -246,8 +333,8 @@ export default function RecitationPanel({
               ? "اضغط على المايك عندما تكون مستعدًا"
               : "Tap the microphone when you're ready"
             : isArabic
-              ? "اختر سورة الفاتحة لتجربة التحليل الآلي"
-              : "Select Al-Fatiha to try automatic analysis"}
+              ? "انتظر تحميل نص الآية"
+              : "Waiting for ayah text to load"}
         </p>
 
         {errorMessage && (
@@ -256,10 +343,22 @@ export default function RecitationPanel({
           </p>
         )}
 
-        {ayahLoadError && !errorMessage && (
+        {surahLoadError && !errorMessage && (
           <p className="mt-4 rounded-xl bg-[#fde9e9] px-4 py-3 text-sm font-semibold text-[#b42318]">
-            {ayahLoadError}
+            {surahLoadError}
           </p>
+        )}
+
+        {debugLog.length > 0 && (
+          <div
+            dir="ltr"
+            className="mt-4 rounded-xl bg-gray-100 px-4 py-3 text-left text-xs text-gray-700"
+          >
+            <p className="mb-1 font-bold">Debug (temporary):</p>
+            {debugLog.map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
         )}
       </section>
 

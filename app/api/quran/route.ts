@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     for (let i = 0; i < 10; i++) {
       const batch = await client.content.v4.verses.byChapter(surah, {
         words: true,
-        wordFields: { codeV2: true },
+        wordFields: { codeV2: true, textUthmani: true },
         mushaf: 1,
         page,
         perPage: PER_PAGE,
