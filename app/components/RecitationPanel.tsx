@@ -16,6 +16,13 @@ type RecitationPanelProps = {
 
 type Stage = "idle" | "recording" | "analyzing" | "done" | "error";
 
+// Scope decision (3 Oct 2026): automatic analysis is limited to Juz Amma
+// (surahs 78-114) - short surahs, the first thing most learners study, and
+// a small enough surface to verify end to end (see backend/validate_scope.py).
+// The mushaf viewer still shows every surah for reading.
+const JUZ_AMMA_FIRST_SURAH = 78;
+const JUZ_AMMA_LAST_SURAH = 114;
+
 // Raw shape returned by our own /api/quran route (see app/api/quran/route.ts).
 // textUthmani is the plain, phonetizable Arabic text (what the backend needs
 // to compare against) - separate from codeV2, which is only a font-specific
@@ -58,6 +65,9 @@ export default function RecitationPanel({
   surahNumber,
   isArabic,
 }: RecitationPanelProps) {
+  const inScope =
+    surahNumber >= JUZ_AMMA_FIRST_SURAH && surahNumber <= JUZ_AMMA_LAST_SURAH;
+
   // Every ayah of the current surah, loaded once per surah. This is the
   // SAME /api/quran route the mushaf viewer (QuranText) uses, just also
   // asking for textUthmani (plain, phonetizable text) alongside codeV2
@@ -88,6 +98,11 @@ export default function RecitationPanel({
     let cancelled = false;
     setSurahLoadError(null);
     setSelectedAyah(1);
+
+    if (surahNumber < JUZ_AMMA_FIRST_SURAH || surahNumber > JUZ_AMMA_LAST_SURAH) {
+      setSurahAyahs([]);
+      return;
+    }
 
     fetch(`/api/quran?surah=${surahNumber}`)
       .then((res) => {
@@ -135,7 +150,7 @@ export default function RecitationPanel({
       issue_description: null,
     }));
 
-  const supported = analysisSupported(currentWords);
+  const supported = inScope && analysisSupported(currentWords);
 
   function goToAyah(next: number) {
     if (next < 1 || next > totalAyat) return;
@@ -248,7 +263,7 @@ export default function RecitationPanel({
       <section className="mt-5 rounded-[28px] border border-[#e4e0d5] bg-white p-6 text-center shadow-sm md:p-8">
         {/* Ayah picker - lets the learner practice whichever ayah they want,
             not just one hardcoded ayah. */}
-        {totalAyat > 0 && (
+        {inScope && totalAyat > 0 && (
           <div className="mb-4 flex items-center justify-center gap-3">
             <button
               onClick={() => goToAyah(selectedAyah - 1)}
@@ -276,7 +291,15 @@ export default function RecitationPanel({
           </div>
         )}
 
-        {!supported && !surahLoadError && (
+        {!inScope && (
+          <p className="mb-4 text-sm font-semibold text-gray-500">
+            {isArabic
+              ? "التحليل الآلي متاح حاليًا لجزء عمّ (السور 78–114) — نسخة تجريبية أولى."
+              : "Automatic analysis is currently available for Juz Amma (surahs 78–114) — early preview."}
+          </p>
+        )}
+
+        {inScope && !supported && !surahLoadError && (
           <p className="mb-4 text-sm font-semibold text-gray-500">
             {isArabic
               ? "جاري تحميل نص الآية..."
@@ -332,9 +355,13 @@ export default function RecitationPanel({
             ? isArabic
               ? "اضغط على المايك عندما تكون مستعدًا"
               : "Tap the microphone when you're ready"
-            : isArabic
-              ? "انتظر تحميل نص الآية"
-              : "Waiting for ayah text to load"}
+            : !inScope
+              ? isArabic
+                ? "اختر سورة من جزء عمّ لتجربة التحليل الآلي"
+                : "Pick a Juz Amma surah to try automatic analysis"
+              : isArabic
+                ? "انتظر تحميل نص الآية"
+                : "Waiting for ayah text to load"}
         </p>
 
         {errorMessage && (

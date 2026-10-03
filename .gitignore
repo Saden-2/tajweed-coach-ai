@@ -62,3 +62,4 @@ env_*/
 # temporary local diagnostics (never commit)
 /backend/_analyze_log.txt
 /backend/_debug_adapter.py
+/probe_quran.mjs
