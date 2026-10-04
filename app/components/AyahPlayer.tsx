@@ -51,13 +51,30 @@ export function ayahAudioUrl(reciter: string, surah: number, ayah: number) {
   return `https://everyayah.com/data/${reciter}/${s}${a}.mp3`;
 }
 
-type Props = { surah: number; ayah: number; isArabic: boolean };
+type Props = {
+  surah: number;
+  ayah: number;
+  isArabic: boolean;
+  /** Called when an ayah finishes while "continuous play" is on. */
+  onNext?: () => void;
+  /** True when there is a next ayah to advance to. */
+  hasNext?: boolean;
+};
 
-export default function AyahPlayer({ surah, ayah, isArabic }: Props) {
+export default function AyahPlayer({
+  surah,
+  ayah,
+  isArabic,
+  onNext,
+  hasNext = false,
+}: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [reciter, setReciter] = useState(RECITERS[0].id);
   const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [continuous, setContinuous] = useState(false);
+  // Set when an ayah ended in continuous mode, so the next one starts itself.
+  const autoplayNext = useRef(false);
 
   // Stop and reset whenever the ayah or the reciter changes.
   useEffect(() => {
@@ -68,6 +85,10 @@ export default function AyahPlayer({ surah, ayah, isArabic }: Props) {
     }
     setPlaying(false);
     setFailed(false);
+    if (autoplayNext.current && el) {
+      autoplayNext.current = false;
+      el.play().catch(() => setFailed(true));
+    }
   }, [surah, ayah, reciter]);
 
   function toggle() {
@@ -110,6 +131,18 @@ export default function AyahPlayer({ surah, ayah, isArabic }: Props) {
         ))}
       </select>
 
+      {onNext && (
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={continuous}
+            onChange={(e) => setContinuous(e.target.checked)}
+            className="h-4 w-4 accent-[#187762]"
+          />
+          {isArabic ? "تشغيل متتابع" : "Play continuously"}
+        </label>
+      )}
+
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio
         ref={audioRef}
@@ -117,7 +150,13 @@ export default function AyahPlayer({ surah, ayah, isArabic }: Props) {
         preload="none"
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
-        onEnded={() => setPlaying(false)}
+        onEnded={() => {
+          setPlaying(false);
+          if (continuous && hasNext && onNext) {
+            autoplayNext.current = true;
+            onNext();
+          }
+        }}
         onError={() => {
           setPlaying(false);
           setFailed(true);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import AyahPlayer from "./AyahPlayer";
+import { SURAH_AYAT } from "./SurahList";
 import {
   analysisSupported,
   analyzeRecitation,
@@ -139,6 +140,10 @@ export default function RecitationPanel({
   }, []);
 
   const totalAyat = surahAyahs.length;
+  // Listening works for the WHOLE Quran (EveryAyah has all 6236 ayat); only
+  // the AI analysis is limited to Juz Amma. Use the static ayah count for
+  // surahs whose text we do not load here.
+  const listenTotal = totalAyat > 0 ? totalAyat : (SURAH_AYAT[surahNumber - 1] ?? 0);
   const currentRawAyah = surahAyahs.find((a) => a.verseNumber === selectedAyah);
 
   // Only real recited words carry phonetizable text - charTypeName "word".
@@ -163,7 +168,7 @@ export default function RecitationPanel({
     .trim();
 
   function goToAyah(next: number) {
-    if (next < 1 || next > totalAyat) return;
+    if (next < 1 || next > listenTotal) return;
     setSelectedAyah(next);
     setAnalysis(null);
     setErrorMessage(null);
@@ -267,7 +272,7 @@ export default function RecitationPanel({
       <section className="mt-5 rounded-[28px] border border-[#e4e0d5] bg-white p-6 text-center shadow-sm md:p-8">
         {/* Ayah picker - lets the learner practice whichever ayah they want,
             not just one hardcoded ayah. */}
-        {inScope && totalAyat > 0 && (
+        {listenTotal > 0 && (
           <div className="mb-4 flex items-center justify-center gap-3">
             <button
               onClick={() => goToAyah(selectedAyah - 1)}
@@ -280,13 +285,13 @@ export default function RecitationPanel({
 
             <p className="text-sm font-semibold text-gray-600">
               {isArabic
-                ? `الآية ${selectedAyah} من ${totalAyat}`
-                : `Ayah ${selectedAyah} of ${totalAyat}`}
+                ? `الآية ${selectedAyah} من ${listenTotal}`
+                : `Ayah ${selectedAyah} of ${listenTotal}`}
             </p>
 
             <button
               onClick={() => goToAyah(selectedAyah + 1)}
-              disabled={selectedAyah >= totalAyat}
+              disabled={selectedAyah >= listenTotal}
               className="rounded-full bg-[#f1efe6] px-3 py-1 text-sm font-bold text-[#187762] transition disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={isArabic ? "الآية التالية" : "Next ayah"}
             >
@@ -296,11 +301,13 @@ export default function RecitationPanel({
         )}
 
         {/* Listen to a professional reciter first, then record. */}
-        {inScope && supported && (
+        {listenTotal > 0 && (
           <AyahPlayer
             surah={surahNumber}
             ayah={selectedAyah}
             isArabic={isArabic}
+            hasNext={selectedAyah < listenTotal}
+            onNext={() => goToAyah(selectedAyah + 1)}
           />
         )}
 
