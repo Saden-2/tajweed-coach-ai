@@ -39,6 +39,9 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [scaleIdx, setScaleIdx] = useState(1);
+  // "page" = exact 15-line mushaf page; "flow" = same mushaf glyphs but the
+  // words wrap freely, so the text can be much larger (phones, older readers).
+  const [mode, setMode] = useState<"page" | "flow">("page");
 
   useEffect(() => {
     try {
@@ -50,6 +53,30 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
       /* storage unavailable - keep the default size */
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mushafMode");
+      if (saved === "page" || saved === "flow") {
+        setMode(saved);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setMode("flow");
+    }
+  }, []);
+
+  function changeMode(next: "page" | "flow") {
+    setMode(next);
+    try {
+      localStorage.setItem("mushafMode", next);
+    } catch {
+      /* ignore */
+    }
+  }
 
   function changeScale(delta: number) {
     const next = Math.min(SCALES.length - 1, Math.max(0, scaleIdx + delta));
@@ -171,6 +198,32 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
   return (
     <div className="mx-auto w-full max-w-5xl px-3 py-6 md:px-8">
 
+      {/* طريقة العرض - Reading mode */}
+      <div className="mb-3 flex justify-center">
+        <div
+          className="flex rounded-full bg-white p-1 shadow-sm"
+          role="group"
+          aria-label="طريقة العرض / View mode"
+        >
+          <button
+            onClick={() => changeMode("flow")}
+            className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
+              mode === "flow" ? "bg-[#187762] text-white" : "text-gray-500"
+            }`}
+          >
+            قراءة مريحة · Comfortable
+          </button>
+          <button
+            onClick={() => changeMode("page")}
+            className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
+              mode === "page" ? "bg-[#187762] text-white" : "text-gray-500"
+            }`}
+          >
+            صفحة المصحف · Mushaf page
+          </button>
+        </div>
+      </div>
+
       {/* معلومات الصفحة */}
       <div
         dir="rtl"
@@ -226,6 +279,12 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
           md:px-10
           md:py-14
         "
+        style={{
+          borderColor: "#c9a24b",
+          borderStyle: "double",
+          borderWidth: "5px",
+          boxShadow: "inset 0 0 0 2px #fffdf7, inset 0 0 0 3px #187762aa",
+        }}
       >
         {loadedPage !== currentPage ? (
           <div className="py-20 text-center text-gray-400">
@@ -237,8 +296,8 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
             className="mx-auto text-center text-[#123d35]"
             style={{
               containerType: "inline-size",
-              width: `${SCALES[scaleIdx] * 100}%`,
-              maxWidth: `${SCALES[scaleIdx] * 56}rem`,
+              width: mode === "page" ? `${SCALES[scaleIdx] * 100}%` : "100%",
+              maxWidth: mode === "page" ? `${SCALES[scaleIdx] * 56}rem` : "56rem",
             }}
           >
 
@@ -251,13 +310,21 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                   href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap"
                 />
                 {surahName && (
-                  <div className="mx-auto mb-5 max-w-xl rounded-xl border-2 border-[#187762]/40 bg-[#e8f3ee] py-2 text-2xl font-bold text-[#123d35]">
+                  <div
+                    className="mx-auto mb-5 max-w-xl rounded-2xl bg-[#e8f3ee] py-2 text-2xl font-bold text-[#123d35]"
+                    style={{
+                      border: "3px double #c9a24b",
+                      fontFamily: "'Amiri Quran', 'Traditional Arabic', serif",
+                    }}
+                  >
+                    <span className="mx-3 text-[#c9a24b]">❁</span>
                     سورة {surahName}
+                    <span className="mx-3 text-[#c9a24b]">❁</span>
                   </div>
                 )}
                 {showBasmala && (
                   <div
-                    className="text-3xl text-[#123d35] md:text-4xl"
+                    className="text-4xl text-[#123d35] md:text-5xl"
                     style={{
                       fontFamily: "'Amiri Quran', 'Traditional Arabic', serif",
                       lineHeight: 2,
@@ -269,7 +336,30 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
               </div>
             )}
 
-            {lineNumbers.map((lineNumber) => {
+            {mode === "flow" ? (
+              <div
+                dir="rtl"
+                className="flex flex-wrap items-center justify-center gap-x-[3px] gap-y-3 pb-4"
+              >
+                {words.map((word) => {
+                  const isEnd = word.charTypeName === "end";
+                  const base = `calc(${SCALES[scaleIdx]} * clamp(30px, 8.2vw, 50px))`;
+                  return (
+                    <span
+                      key={word.id}
+                      style={{
+                        fontFamily: `p${currentPage}-v2`,
+                        fontSize: isEnd ? `calc(${base} * 0.8)` : base,
+                        lineHeight: 1.9,
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: word.codeV2 || word.text || "",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            ) : lineNumbers.map((lineNumber) => {
               const lineWords = words.filter(
                 (word) => word.lineNumber === lineNumber
               );
