@@ -73,3 +73,12 @@
 - Source: per-ayah MP3 files from EveryAyah.com (`https://everyayah.com/data/<reciter>/<SSSAAA>.mp3`), reciters: Mishary Alafasy (Alafasy_128kbps), Mahmoud Khalil Al-Husary (Husary_128kbps), Mohamed Siddiq Al-Minshawi (Minshawy_Murattal_128kbps).
 - Use: streamed directly from the source in the learner's browser; the audio files are NOT copied into this repository or hosted by us. The same Alafasy files were also used (downloaded locally, git-ignored cache) in `backend/validate_accuracy.py` as correct-recitation test samples.
 - ⚠️ To confirm before final submission: EveryAyah's terms of use / reciters' rights for this use (educational, non-commercial prototype). If any doubt, remove the feature or request permission.
+
+## English meaning (translation) shown under the ayah
+
+- Source: Saheeh International English translation (Quran.com translation resource 20), fetched at request time through the public Quran.com API v4 (`translations=20`) by our `/api/quran` route; shown for Juz Amma (the analysis scope). Stripped of HTML footnote markers; not stored in this repository.
+- ⚠️ To confirm before final submission: Quran.com API terms of use and the translation's license for this (educational, non-commercial) use; attribution is displayed under the text.
+
+## Surah list metadata
+
+- Ayah counts and Meccan/Medinan classification (86 Meccan, 28 Medinan; total 6236 ayat) follow the Tanzil / Quran.com convention; entered as static data in `app/components/SurahList.tsx` and checked programmatically (counts sum to 6236).

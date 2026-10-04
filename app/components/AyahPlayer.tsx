@@ -19,6 +19,30 @@ const RECITERS = [
     ar: "محمد صديق المنشاوي",
     en: "Mohamed Siddiq Al-Minshawi",
   },
+  {
+    id: "Abdul_Basit_Murattal_192kbps",
+    ar: "عبد الباسط عبد الصمد",
+    en: "Abdul Basit Abdus-Samad",
+  },
+  {
+    id: "Abdurrahmaan_As-Sudais_192kbps",
+    ar: "عبد الرحمن السديس",
+    en: "Abdurrahman As-Sudais",
+  },
+  { id: "Saood_ash-Shuraym_128kbps", ar: "سعود الشريم", en: "Saud Ash-Shuraim" },
+  { id: "Ghamadi_40kbps", ar: "سعد الغامدي", en: "Saad Al-Ghamdi" },
+  { id: "Hudhaify_128kbps", ar: "علي الحذيفي", en: "Ali Al-Hudhaifi" },
+  { id: "Nasser_Alqatami_128kbps", ar: "ناصر القطامي", en: "Nasser Al-Qatami" },
+  {
+    id: "Yasser_Ad-Dussary_128kbps",
+    ar: "ياسر الدوسري",
+    en: "Yasser Ad-Dossari",
+  },
+  {
+    id: "Abu_Bakr_Ash-Shaatree_128kbps",
+    ar: "أبو بكر الشاطري",
+    en: "Abu Bakr Ash-Shatri",
+  },
 ];
 
 export function ayahAudioUrl(reciter: string, surah: number, ayah: number) {

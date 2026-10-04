@@ -26,7 +26,7 @@ async function fetchPublicVerses(surah: string) {
     const res = await fetch(
       `https://api.quran.com/api/v4/verses/by_chapter/${encodeURIComponent(
         surah
-      )}?words=true&word_fields=code_v2,text_uthmani&mushaf=1&per_page=50&page=${page}`,
+      )}?words=true&word_fields=code_v2,text_uthmani&mushaf=1&translations=20&per_page=50&page=${page}`,
       { cache: "no-store" }
     );
     if (!res.ok) throw new Error(`public api ${res.status}`);

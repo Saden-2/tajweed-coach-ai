@@ -43,6 +43,9 @@ type RawAyah = {
   verseNumber: number;
   verseKey: string;
   words: RawWord[];
+  // English translation (Saheeh International, Quran.com resource 20); only
+  // present when served by the public Quran.com API fallback.
+  translations?: { resourceId?: number; text?: string }[];
 };
 
 const STATUS_LABEL_AR: Record<string, string> = {
@@ -152,6 +155,12 @@ export default function RecitationPanel({
     }));
 
   const supported = inScope && analysisSupported(currentWords);
+
+  // Strip the HTML footnote markers Quran.com puts inside translation text.
+  const translationText = (currentRawAyah?.translations?.[0]?.text ?? "")
+    .replace(/<sup[^>]*>.*?<\/sup>/g, "")
+    .replace(/<[^>]+>/g, "")
+    .trim();
 
   function goToAyah(next: number) {
     if (next < 1 || next > totalAyat) return;
@@ -293,6 +302,18 @@ export default function RecitationPanel({
             ayah={selectedAyah}
             isArabic={isArabic}
           />
+        )}
+
+        {inScope && supported && translationText && (
+          <div
+            dir="ltr"
+            className="mx-auto mb-4 max-w-2xl rounded-xl bg-[#f7f5ee] px-4 py-3 text-left text-sm leading-relaxed text-gray-700"
+          >
+            <p>{translationText}</p>
+            <p className="mt-1 text-[11px] text-gray-400">
+              English meaning: Saheeh International (via Quran.com)
+            </p>
+          </div>
         )}
 
         {!inScope && (
