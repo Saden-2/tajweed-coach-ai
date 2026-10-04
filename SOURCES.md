@@ -72,12 +72,12 @@
 - Feature: the "Listen to the reciter" button in the practice panel (`app/components/AyahPlayer.tsx`).
 - Source: per-ayah MP3 files from EveryAyah.com (`https://everyayah.com/data/<reciter>/<SSSAAA>.mp3`), reciters: Mishary Alafasy (Alafasy_128kbps), Mahmoud Khalil Al-Husary (Husary_128kbps), Mohamed Siddiq Al-Minshawi (Minshawy_Murattal_128kbps).
 - Use: streamed directly from the source in the learner's browser; the audio files are NOT copied into this repository or hosted by us. The same Alafasy files were also used (downloaded locally, git-ignored cache) in `backend/validate_accuracy.py` as correct-recitation test samples.
-- ⚠️ To confirm before final submission: EveryAyah's terms of use / reciters' rights for this use (educational, non-commercial prototype). If any doubt, remove the feature or request permission.
+- Checked 4 Oct 2026: EveryAyah audio is described in the Quran community as free for non-commercial use with attribution (CC BY-NC style; see the discussion at github.com/quran/quran_android/issues/434). This prototype is educational and non-commercial, audio is streamed from the source (not copied), and the source is credited in the app footer. ⚠️ No formal licence text was found on everyayah.com itself; if the organisers or the site owner object, the feature can be removed without affecting the rest of the app.
 
 ## English meaning (translation) shown under the ayah
 
 - Source: Saheeh International English translation (Quran.com translation resource 20), fetched at request time through the public Quran.com API v4 (`translations=20`) by our `/api/quran` route; shown for Juz Amma (the analysis scope). Stripped of HTML footnote markers; not stored in this repository.
-- ⚠️ To confirm before final submission: Quran.com API terms of use and the translation's license for this (educational, non-commercial) use; attribution is displayed under the text.
+- Checked 4 Oct 2026: the Quran Foundation developer terms (api-docs.quran.foundation/legal/developer-terms) allow building apps on the content provided the text is not altered, the source is credited in a reasonably accessible place (done: app footer, README, this file), and the content is not used to train ML models without consent (we do not train on it; the text is only the reference the recitation is compared with). ⚠️ The terms do not explicitly cover the unauthenticated public `api.quran.com` endpoint we use as a fallback for surahs the pre-live gateway does not serve; production use would need Quran Foundation production credentials. The Saheeh International translation is shown with attribution; its separate licence was not checked.
 
 ## Surah list metadata
 

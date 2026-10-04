@@ -81,9 +81,19 @@ No secret is required to run or deploy the demo. `.env*` files are git-ignored.
 
 ## Limitations (please read)
 
-- The tajweed feedback is a **preliminary estimate** from an experimental model: the warn/error thresholds are **not calibrated yet**, and it was tested on a small number of samples (see `DISCLOSURE.md`). It can be wrong, e.g. it may flag a light qalqalah at a stop, and when a whole word is skipped it detects that something is wrong but cannot point to the exact word.
+- The tajweed feedback is a **preliminary estimate** from an experimental model: the warn/error thresholds are **not calibrated yet**, and it was tested on a small number of samples (see `DISCLOSURE.md`). It can be wrong, e.g. it may flag a light qalqalah at a stop, and when a whole word is skipped it detects that something is wrong but cannot point to the exact word. The explanation text under a flagged word is Arabic only for now.
 - It is a training aid, **not a replacement for a certified teacher**, who remains the final reference.
 - Audio is processed only to produce the feedback; this prototype does not store recordings or build any profile of the user.
+
+## Roadmap (what we would improve next)
+
+1. **Calibrate the feedback with certified tajweed teachers.** Build a labelled set of correct and incorrect recitations, then tune the warn/error thresholds (today they are not calibrated).
+2. **Better word localisation.** When a whole word is skipped or added, point to the exact word and show a clear "your recitation differs a lot from the text" message instead of flagging every word.
+3. **Wider AI coverage.** Extend analysis from Juz Amma to Al-Fatihah first, then the rest of the Quran, after checking each surah with `backend/validate_scope.py` and `backend/validate_tokens.py`.
+4. **Explanations in English.** The reason shown under a flagged word is Arabic only for now; translate it (and add more languages).
+5. **Learning journey.** Practice history, progress tracking and review reminders (the Practice / Progress / Profile sections are marked "coming soon").
+6. **Faster and steadier service.** Remove the wake-up wait with an always-warm or GPU backend, with a cost plan for continuity.
+7. **More riwayat** (for example Warsh) once enough labelled data exists.
 
 ## Credits and licenses
 
