@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { localizeIssue } from "../lib/issueText";
 import AyahPlayer from "./AyahPlayer";
 import { SURAH_AYAT } from "./SurahList";
 import {
@@ -502,18 +503,24 @@ function WordFeedbackCard({
       ? "بانتظار التلاوة"
       : "Waiting";
 
+  const issue = localizeIssue(
+    word.issue_title,
+    word.issue_description,
+    isArabic,
+  );
+
   return (
     <div className={`rounded-2xl border p-4 text-right ${style}`}>
       <p dir="rtl" className="text-lg font-bold">
         {word.text}
       </p>
       <p className="mt-1 text-xs font-semibold">{label}</p>
-      {word.issue_title && (
-        <p className="mt-1 text-xs font-bold">{word.issue_title}</p>
+      {issue.title && (
+        <p className="mt-1 text-xs font-bold">{issue.title}</p>
       )}
-      {word.issue_description && (
+      {issue.description && (
         <p className="mt-1 text-xs leading-relaxed opacity-90">
-          {word.issue_description}
+          {issue.description}
         </p>
       )}
     </div>
