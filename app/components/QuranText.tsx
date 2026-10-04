@@ -27,6 +27,9 @@ type QuranTextProps = {
   surahName?: string;
 };
 
+// Text-size levels (for older readers / low vision). 1 = fit the frame.
+const SCALES = [0.85, 1, 1.25, 1.5, 1.8];
+
 const BASMALA = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
 export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
@@ -35,6 +38,28 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
   const [loadedPage, setLoadedPage] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [scaleIdx, setScaleIdx] = useState(1);
+
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem("mushafScaleIdx"));
+      if (Number.isInteger(saved) && saved >= 0 && saved < SCALES.length) {
+        setScaleIdx(saved);
+      }
+    } catch {
+      /* storage unavailable - keep the default size */
+    }
+  }, []);
+
+  function changeScale(delta: number) {
+    const next = Math.min(SCALES.length - 1, Math.max(0, scaleIdx + delta));
+    setScaleIdx(next);
+    try {
+      localStorage.setItem("mushafScaleIdx", String(next));
+    } catch {
+      /* ignore */
+    }
+  }
 
   useEffect(() => {
     async function loadSurah() {
@@ -152,6 +177,35 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
         className="mb-5 flex items-center justify-between text-sm text-gray-500"
       >
         <span>الجزء {juz}</span>
+
+        {/* حجم الخط - Text size */}
+        <div
+          dir="ltr"
+          className="flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-sm"
+          role="group"
+          aria-label="حجم الخط / Text size"
+        >
+          <button
+            onClick={() => changeScale(-1)}
+            disabled={scaleIdx === 0}
+            aria-label="تصغير الخط / Smaller text"
+            className="h-8 w-8 rounded-full text-sm font-bold text-[#187762] transition hover:bg-[#e8f3ee] disabled:opacity-30"
+          >
+            أ-
+          </button>
+          <span className="min-w-[3rem] text-center text-xs font-semibold text-gray-600">
+            {Math.round(SCALES[scaleIdx] * 100)}%
+          </span>
+          <button
+            onClick={() => changeScale(1)}
+            disabled={scaleIdx === SCALES.length - 1}
+            aria-label="تكبير الخط / Larger text"
+            className="h-8 w-8 rounded-full text-base font-bold text-[#187762] transition hover:bg-[#e8f3ee] disabled:opacity-30"
+          >
+            أ+
+          </button>
+        </div>
+
         <span>صفحة {currentPage}</span>
       </div>
 
@@ -178,9 +232,14 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
             جاري تحميل خط المصحف...
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <div
-            className="mx-auto max-w-4xl text-center text-[#123d35]"
-            style={{ containerType: "inline-size" }}
+            className="mx-auto text-center text-[#123d35]"
+            style={{
+              containerType: "inline-size",
+              width: `${SCALES[scaleIdx] * 100}%`,
+              maxWidth: `${SCALES[scaleIdx] * 56}rem`,
+            }}
           >
 
             {startsHere && (
@@ -226,7 +285,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                     gap-[2px]
                     whitespace-nowrap
                   "
-                  style={{ minHeight: "min(66px, 9.2cqw)" }}
+                  style={{ minHeight: `min(${66 * SCALES[scaleIdx]}px, 9.2cqw)` }}
                 >
                   {lineWords.map((word) => {
                     const isEnd = word.charTypeName === "end";
@@ -242,7 +301,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                           key={word.id}
                           style={{
                             fontFamily: `p${currentPage}-v2`,
-                            fontSize: "min(34px, 4.2cqw)",
+                            fontSize: `min(${34 * SCALES[scaleIdx]}px, 4.2cqw)`,
                           }}
                           dangerouslySetInnerHTML={{
                             __html: word.codeV2 || word.text || "",
@@ -256,7 +315,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                         key={word.id}
                         style={{
                           fontFamily: `p${currentPage}-v2`,
-                          fontSize: "min(48px, 5.7cqw)",
+                          fontSize: `min(${48 * SCALES[scaleIdx]}px, 5.7cqw)`,
                           lineHeight: 1.7,
                         }}
                         dangerouslySetInnerHTML={{
@@ -270,6 +329,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
               );
             })}
 
+          </div>
           </div>
         )}
       </div>
