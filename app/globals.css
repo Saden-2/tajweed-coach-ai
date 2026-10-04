@@ -12,11 +12,20 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Night mode (toggled by components/ThemeToggle.tsx via html.dark).
+   The whole page is inverted + hue-rotated so every light surface becomes a
+   soft dark one while hues (greens, ambers, reds) stay recognisable.
+   invert(0.92) keeps the "black" slightly lifted (#141414) for eye comfort. */
+html.dark {
+  filter: invert(0.92) hue-rotate(180deg);
+  background: #ffffff;
+}
+
+/* Media must not be double-inverted. */
+html.dark img,
+html.dark video,
+html.dark canvas {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 body {
