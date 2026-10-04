@@ -1,0 +1,13 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+pydantic>=2.7
+torch>=2.0
+transformers>=4.40
+quran-muaalem
+quran-transcript
+librosa
+av
+numba>=0.61.2
+diff-match-patch

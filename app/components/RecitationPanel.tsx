@@ -80,16 +80,10 @@ export default function RecitationPanel({
   const [stage, setStage] = useState<Stage>("idle");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [debugLog, setDebugLog] = useState<string[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-
-  function logDebug(msg: string) {
-    const line = `${new Date().toLocaleTimeString()} ${msg}`;
-    setDebugLog((prev) => [...prev.slice(-7), line]);
-  }
 
   // Load every ayah of the surah once (same data source the mushaf page
   // already uses), so the learner can pick ANY ayah to practice instead of
@@ -163,7 +157,6 @@ export default function RecitationPanel({
   async function startRecording() {
     setErrorMessage(null);
     setAnalysis(null);
-    logDebug(`startRecording() called (ayah ${selectedAyah})`);
 
     let stream: MediaStream;
     try {
@@ -197,7 +190,6 @@ export default function RecitationPanel({
     recorder.onstop = () => {
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
-      logDebug("recorder.onstop fired");
       void handleRecordingStopped(recorder.mimeType);
     };
 
@@ -215,7 +207,6 @@ export default function RecitationPanel({
       type: mimeType || "audio/webm",
     });
     chunksRef.current = [];
-    logDebug(`handleRecordingStopped: blob size=${blob.size} type=${mimeType}`);
 
     if (blob.size === 0) {
       setErrorMessage("لم يتم تسجيل أي صوت. حاول مرة أخرى.");
@@ -224,7 +215,6 @@ export default function RecitationPanel({
     }
 
     setStage("analyzing");
-    logDebug(`calling analyzeRecitation() for ayah ${selectedAyah} (${currentWords.length} words)...`);
     try {
       const result = await analyzeRecitation(
         surahNumber,
@@ -232,11 +222,9 @@ export default function RecitationPanel({
         blob,
         currentWords.map((w) => ({ id: w.id, text: w.text }))
       );
-      logDebug(`got result: score=${result.score}`);
       setAnalysis(result);
       setStage("done");
     } catch (err) {
-      logDebug(`ERROR: ${err instanceof Error ? err.message : String(err)}`);
       setErrorMessage(
         err instanceof BackendError
           ? err.message
@@ -364,6 +352,14 @@ export default function RecitationPanel({
                 : "Waiting for ayah text to load"}
         </p>
 
+        {stage === "analyzing" && (
+          <p className="mt-3 text-sm font-semibold text-[#187762]">
+            {isArabic
+              ? "جارٍ تحليل تلاوتك بالنموذج… قد يستغرق ذلك حتى دقيقة أو دقيقتين، لا تغلق الصفحة."
+              : "Analyzing your recitation with the model… this can take up to a minute or two. Please keep the page open."}
+          </p>
+        )}
+
         {errorMessage && (
           <p className="mt-4 rounded-xl bg-[#fde9e9] px-4 py-3 text-sm font-semibold text-[#b42318]">
             {errorMessage}
@@ -374,18 +370,6 @@ export default function RecitationPanel({
           <p className="mt-4 rounded-xl bg-[#fde9e9] px-4 py-3 text-sm font-semibold text-[#b42318]">
             {surahLoadError}
           </p>
-        )}
-
-        {debugLog.length > 0 && (
-          <div
-            dir="ltr"
-            className="mt-4 rounded-xl bg-gray-100 px-4 py-3 text-left text-xs text-gray-700"
-          >
-            <p className="mb-1 font-bold">Debug (temporary):</p>
-            {debugLog.map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
-          </div>
         )}
       </section>
 
@@ -410,6 +394,15 @@ export default function RecitationPanel({
                 : "Your recitation analysis will appear here."}
           </p>
         </div>
+
+        <p
+          dir={isArabic ? "rtl" : "ltr"}
+          className="mb-5 rounded-xl bg-[#fff6e0] px-4 py-3 text-xs leading-relaxed text-[#7a5b00]"
+        >
+          {isArabic
+            ? "تنبيه: هذا تقدير أولي من نموذج ذكاء اصطناعي تجريبي لم تُكتمل معايرته بعد، ويقارن تلاوتك بالنص القرآني (رواية حفص). قد يخطئ، وليس بديلًا عن معلّم تجويد مُجاز؛ المرجع النهائي هو المعلّم المجاز."
+            : "Note: this is a preliminary estimate from an experimental AI model that is not yet fully calibrated. It compares your recitation to the Quranic text (Hafs). It can be wrong and is not a substitute for a certified tajweed teacher, who remains the final reference."}
+        </p>
 
         {displayWords.length === 0 ? (
           <p className="text-sm text-gray-400">
