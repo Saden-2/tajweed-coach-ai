@@ -252,6 +252,37 @@ def _decode_audio_to_mono_16k(audio_bytes: bytes):
     return (pcm.astype(np.float32) / 32768.0)
 
 
+# Characters present in the Quran.com/Quran Foundation "textUthmani" that the
+# phonetizer/tokenizer vocabulary does not know. The model library ships its
+# own Uthmani script "without pause, sajda, hizb marks" - so we strip those
+# marks (U+06D6-06DC waqf signs, U+06DE hizb, U+06E9 sajda) and write the
+# precomposed alef-madda U+0622 the way the library does (alef + maddah above).
+# Found by validate_tokens.py: 22 of 564 Juz Amma ayat crashed before this.
+_STRIP_MARKS = {chr(c) for c in list(range(0x06D6, 0x06DD)) + [0x06DE, 0x06E9]}
+
+
+def clean_uthmani(text: str) -> str:
+    out = []
+    for ch in text:
+        if ch in _STRIP_MARKS:
+            continue
+        if ch == "\u0622":
+            # The library writes alef-madda as FATHA + ALEF + MADDAH. If the
+            # source text has the precomposed letter right after a shadda (or
+            # any non-fatha), add the missing fatha (108:1 "إِنَّآ").
+            if not out or out[-1] != "\u064e":
+                out.append("\u064e")
+            out.append("\u0627\u0653")
+        else:
+            out.append(ch)
+    return "".join(out).strip()
+
+
+def _ref_text(ayah) -> str:
+    return " ".join(t for t in (clean_uthmani(w["text"]) for w in ayah["words"]) if t)
+
+
+
 class MuaalemModelAdapter(ModelAdapter):
     """
     Real integration against obadx/quran-muaalem (model checkpoint:
@@ -317,7 +348,7 @@ class MuaalemModelAdapter(ModelAdapter):
 
         wave = _decode_audio_to_mono_16k(audio_bytes)
 
-        uthmani_ref = " ".join(w["text"] for w in ayah["words"])
+        uthmani_ref = _ref_text(ayah)
         # NOTE: these 4 madd-length fields are REQUIRED by MoshafAttributes
         # (rewaya="hafs" alone is not enough - pydantic will reject it).
         # Values match quran-muaalem's own shipped default
@@ -378,7 +409,7 @@ class MuaalemModelAdapter(ModelAdapter):
         from quran_transcript import quran_phonetizer
         import diff_match_patch as dmp
 
-        uthmani_ref = " ".join(w["text"] for w in ayah["words"])
+        uthmani_ref = _ref_text(ayah)
         ref_out = quran_phonetizer(uthmani_ref, moshaf, remove_spaces=True)
 
         dmp_obj = dmp.diff_match_patch()
@@ -388,7 +419,11 @@ class MuaalemModelAdapter(ModelAdapter):
         # Per-word phoneme-group counts (see KNOWN LIMITATION above).
         word_group_counts = []
         for w in ayah["words"]:
-            w_out = quran_phonetizer(w["text"], moshaf, remove_spaces=True)
+            cleaned = clean_uthmani(w["text"])
+            if not cleaned:  # a word that was only a pause/sajda mark
+                word_group_counts.append(0)
+                continue
+            w_out = quran_phonetizer(cleaned, moshaf, remove_spaces=True)
             word_group_counts.append(len(w_out.sifat))
 
         words: list[WordResult] = []

@@ -38,6 +38,19 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+def _warm_up_model() -> None:
+    """Load the ~660M-parameter model in a background thread at startup so
+    the first learner request does not pay the load time (set WARMUP=0 to
+    skip, e.g. in quick local tests)."""
+    import os
+    import threading
+
+    if os.environ.get("WARMUP", "1") == "0":
+        return
+    threading.Thread(target=get_adapter, daemon=True).start()
+
+
 class WordOut(BaseModel):
     id: str
     text: str

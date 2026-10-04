@@ -44,25 +44,30 @@ export async function GET(request: NextRequest) {
     const clientId = process.env.QURAN_CLIENT_ID;
     const clientSecret = process.env.QURAN_CLIENT_SECRET;
 
-    if (!clientId || !clientSecret) {
-      return NextResponse.json(
-        { error: "Quran Foundation credentials are missing." },
-        { status: 500 }
-      );
-    }
-
-    const client = createServerClient({
-      clientId,
-      clientSecret,
-      services: {
-        gatewayUrl: "https://apis-prelive.quran.foundation",
-        oauth2BaseUrl: "https://prelive-oauth2.quran.foundation",
-      },
-    });
+    // Credentials are optional: without them (e.g. the public demo
+    // deployment, which should not hold any secret) every request is served
+    // from the public Quran.com API (see fetchPublicVerses above).
+    const client =
+      clientId && clientSecret
+        ? createServerClient({
+            clientId,
+            clientSecret,
+            services: {
+              gatewayUrl: "https://apis-prelive.quran.foundation",
+              oauth2BaseUrl: "https://prelive-oauth2.quran.foundation",
+            },
+          })
+        : null;
 
     const surah = request.nextUrl.searchParams.get("surah");
 
     if (!surah) {
+      if (!client) {
+        return NextResponse.json(
+          { error: "Chapter list needs Quran Foundation credentials." },
+          { status: 501 }
+        );
+      }
       const chapters = await client.content.v4.chapters.list();
       return NextResponse.json(chapters);
     }
@@ -94,6 +99,7 @@ export async function GET(request: NextRequest) {
     // concatenate everything before returning it.
     let allVerses: unknown[] = [];
     try {
+      if (!client) throw new Error("no Quran Foundation credentials configured");
       const sdkVerses: Awaited<
         ReturnType<typeof client.content.v4.verses.byChapter>
       > = [];

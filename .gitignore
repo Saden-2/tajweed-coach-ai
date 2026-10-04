@@ -63,3 +63,4 @@ env_*/
 /backend/_analyze_log.txt
 /backend/_debug_adapter.py
 /probe_quran.mjs
+/backend/_audio_cache/
