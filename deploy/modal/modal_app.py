@@ -55,7 +55,7 @@ for name in BACKEND_FILES:
     cpu=4.0,
     memory=16384,
     timeout=900,
-    scaledown_window=300,
+    scaledown_window=120,  # shorter idle window = less compute spent while nobody uses it
     volumes={"/cache": hf_cache},
 )
 class Api:

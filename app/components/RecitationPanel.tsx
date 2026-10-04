@@ -94,10 +94,14 @@ export default function RecitationPanel({
   // Load every ayah of the surah once (same data source the mushaf page
   // already uses), so the learner can pick ANY ayah to practice instead of
   // being stuck on one hardcoded ayah.
-  // Wake the serverless backend early (model load can take a minute when idle).
+  // Wake the serverless backend early (model load can take a minute when idle),
+  // but only for surahs that can actually be analysed - every wake-up costs
+  // compute credit, so browsing/listening elsewhere must not trigger it.
+  const analysable =
+    surahNumber >= JUZ_AMMA_FIRST_SURAH && surahNumber <= JUZ_AMMA_LAST_SURAH;
   useEffect(() => {
-    warmUpBackend();
-  }, []);
+    if (analysable) warmUpBackend();
+  }, [analysable]);
 
   useEffect(() => {
     let cancelled = false;
