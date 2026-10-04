@@ -400,6 +400,14 @@ export default function RecitationPanel({
                 : "Waiting for ayah text to load"}
         </p>
 
+        {supported && (
+          <p className="mx-auto mt-3 max-w-md text-xs leading-5 text-gray-400">
+            {isArabic
+              ? "الخصوصية: يُعالَج صوتك لإعطاء النتيجة فقط، ولا يُحفظ ولا يُبنى عنه أي ملف شخصي."
+              : "Privacy: your voice is processed only to produce this feedback. It is not stored and no profile is built."}
+          </p>
+        )}
+
         {stage === "analyzing" && (
           <p className="mt-3 text-sm font-semibold text-[#187762]">
             {isArabic
