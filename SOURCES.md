@@ -82,3 +82,7 @@
 ## Surah list metadata
 
 - Ayah counts and Meccan/Medinan classification (86 Meccan, 28 Medinan; total 6236 ayat) follow the Tanzil / Quran.com convention; entered as static data in `app/components/SurahList.tsx` and checked programmatically (counts sum to 6236).
+
+## Fonts
+
+- Basmala line in the mushaf view uses the open-licence "Amiri Quran" font (SIL OFL) loaded from Google Fonts at runtime; the mushaf page glyphs use the Quran.com/QCF v2 page fonts (`verses.quran.foundation`), as before.

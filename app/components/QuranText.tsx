@@ -24,9 +24,12 @@ type Ayah = {
 
 type QuranTextProps = {
   surahNumber: number;
+  surahName?: string;
 };
 
-export default function QuranText({ surahNumber }: QuranTextProps) {
+const BASMALA = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
+
+export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
   const [ayahs, setAyahs] = useState<Ayah[]>([]);
   const [currentPage, setCurrentPage] = useState<number | null>(null);
   const [loadedPage, setLoadedPage] = useState<number | null>(null);
@@ -116,6 +119,12 @@ export default function QuranText({ surahNumber }: QuranTextProps) {
 
   const juz = pageAyahs[0]?.juzNumber;
 
+  // Surah title banner + basmala appear only on the page where the surah
+  // starts. Al-Fatihah's basmala is its own ayah 1 (already in the page text)
+  // and At-Tawbah (9) has no basmala.
+  const startsHere = pageAyahs.some((ayah) => ayah.verseNumber === 1);
+  const showBasmala = startsHere && surahNumber !== 1 && surahNumber !== 9;
+
   const words = pageAyahs.flatMap((ayah) => ayah.words);
 
   const lineNumbers = [
@@ -170,6 +179,33 @@ export default function QuranText({ surahNumber }: QuranTextProps) {
           </div>
         ) : (
           <div className="mx-auto max-w-4xl text-center text-[#123d35]">
+
+            {startsHere && (
+              <div className="mb-6">
+                {/* Quranic-script font for the basmala (marks the QCF page
+                    font does not carry). Falls back to a system serif. */}
+                <link
+                  rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap"
+                />
+                {surahName && (
+                  <div className="mx-auto mb-5 max-w-xl rounded-xl border-2 border-[#187762]/40 bg-[#e8f3ee] py-2 text-2xl font-bold text-[#123d35]">
+                    سورة {surahName}
+                  </div>
+                )}
+                {showBasmala && (
+                  <div
+                    className="text-3xl text-[#123d35] md:text-4xl"
+                    style={{
+                      fontFamily: "'Amiri Quran', 'Traditional Arabic', serif",
+                      lineHeight: 2,
+                    }}
+                  >
+                    {BASMALA}
+                  </div>
+                )}
+              </div>
+            )}
 
             {lineNumbers.map((lineNumber) => {
               const lineWords = words.filter(

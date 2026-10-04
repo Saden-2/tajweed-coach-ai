@@ -97,7 +97,7 @@ export default function QuranReader({
         {/* Quran */}
         <section className="rounded-[28px] border border-[#e4e0d5] bg-white px-5 py-10 shadow-sm md:px-12 md:py-14">
           <div className="mx-auto max-w-3xl text-center">
-            <QuranText surahNumber={surahNumber} />
+            <QuranText surahNumber={surahNumber} surahName={surahName} />
           </div>
         </section>
 
