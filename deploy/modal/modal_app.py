@@ -3,8 +3,7 @@ Serverless deployment of the Tajweed Coach AI backend on Modal (https://modal.co
 
 Why Modal: the model (quran-muaalem, ~660M params) needs a few GB of RAM; the free
 tiers of the usual hosts either lack the memory or lock CPU/Docker behind a paid plan.
-Modal gives free monthly credits, a T4 GPU on demand (analysis in seconds instead of ~1 min
-on CPU) and scales to zero when idle, so it costs nothing while nobody uses it.
+Modal gives free monthly credits and scales to zero when idle, so it costs nothing while nobody uses it.
 
 Deploy (from the repo root, with the Python venv active and `pip install modal`):
     modal setup                                   # one-time login in the browser
@@ -50,7 +49,11 @@ for name in BACKEND_FILES:
 
 @app.cls(
     image=image,
-    gpu="T4",
+    # CPU on purpose: Modal asks for a payment method before it allows GPU functions.
+    # Switch to gpu="T4" later (analysis in seconds instead of ~1 minute) if a payment
+    # method is added to the Modal account.
+    cpu=4.0,
+    memory=16384,
     timeout=900,
     scaledown_window=300,
     volumes={"/cache": hf_cache},
