@@ -226,7 +226,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                     gap-[2px]
                     whitespace-nowrap
                   "
-                  style={{ minHeight: "min(58px, 7.4cqw)" }}
+                  style={{ minHeight: "min(66px, 9.2cqw)" }}
                 >
                   {lineWords.map((word) => {
                     const isEnd = word.charTypeName === "end";
@@ -242,7 +242,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                           key={word.id}
                           style={{
                             fontFamily: `p${currentPage}-v2`,
-                            fontSize: "min(30px, 3.4cqw)",
+                            fontSize: "min(34px, 4.2cqw)",
                           }}
                           dangerouslySetInnerHTML={{
                             __html: word.codeV2 || word.text || "",
@@ -256,7 +256,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                         key={word.id}
                         style={{
                           fontFamily: `p${currentPage}-v2`,
-                          fontSize: "min(44px, 4.6cqw)",
+                          fontSize: "min(48px, 5.7cqw)",
                           lineHeight: 1.7,
                         }}
                         dangerouslySetInnerHTML={{
