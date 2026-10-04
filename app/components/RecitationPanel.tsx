@@ -7,6 +7,7 @@ import {
   type AnalysisResult,
   type AnalyzedWord,
   BackendError,
+  warmUpBackend,
 } from "../lib/backend";
 
 type RecitationPanelProps = {
@@ -88,6 +89,11 @@ export default function RecitationPanel({
   // Load every ayah of the surah once (same data source the mushaf page
   // already uses), so the learner can pick ANY ayah to practice instead of
   // being stuck on one hardcoded ayah.
+  // Wake the serverless backend early (model load can take a minute when idle).
+  useEffect(() => {
+    warmUpBackend();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     setSurahLoadError(null);

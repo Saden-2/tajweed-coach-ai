@@ -39,6 +39,15 @@ export type AnalysisResult = {
 
 export class BackendError extends Error {}
 
+/**
+ * Fire-and-forget ping that wakes the (serverless) analysis backend as soon as
+ * the page opens, so the model is already loaded when the learner finishes
+ * recording. Failures are ignored on purpose.
+ */
+export function warmUpBackend() {
+  fetch(`${BACKEND_URL}/health`, { cache: "no-store" }).catch(() => {});
+}
+
 /** True as long as we have real ayah text to send for analysis. */
 export function analysisSupported(words: { id: string; text: string }[]) {
   return words.length > 0;
