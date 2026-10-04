@@ -66,3 +66,10 @@
 ---
 
 *آخر تحديث: 1 أكتوبر 2026. يحتاج مراجعة وتحديث مستمر مع تقدّم العمل خلال أيام التحدي (4-6 أكتوبر)، خصوصًا البنود المعلّمة بـ ⚠️ أعلاه.*
+
+## Reference recitation audio (listen-before-you-record)
+
+- Feature: the "Listen to the reciter" button in the practice panel (`app/components/AyahPlayer.tsx`).
+- Source: per-ayah MP3 files from EveryAyah.com (`https://everyayah.com/data/<reciter>/<SSSAAA>.mp3`), reciters: Mishary Alafasy (Alafasy_128kbps), Mahmoud Khalil Al-Husary (Husary_128kbps), Mohamed Siddiq Al-Minshawi (Minshawy_Murattal_128kbps).
+- Use: streamed directly from the source in the learner's browser; the audio files are NOT copied into this repository or hosted by us. The same Alafasy files were also used (downloaded locally, git-ignored cache) in `backend/validate_accuracy.py` as correct-recitation test samples.
+- ⚠️ To confirm before final submission: EveryAyah's terms of use / reciters' rights for this use (educational, non-commercial prototype). If any doubt, remove the feature or request permission.

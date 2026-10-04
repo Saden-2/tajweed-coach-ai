@@ -1,0 +1,112 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+/**
+ * Lets the learner LISTEN to a professional reciter for the selected ayah
+ * before recording their own recitation (the "model to imitate").
+ *
+ * Audio source: EveryAyah.com per-ayah MP3 files (free for non-commercial /
+ * educational use; see SOURCES.md). The audio is streamed directly from the
+ * source in the learner's browser - we do not copy or host it.
+ */
+
+const RECITERS = [
+  { id: "Alafasy_128kbps", ar: "مشاري العفاسي", en: "Mishary Alafasy" },
+  { id: "Husary_128kbps", ar: "محمود خليل الحصري", en: "Mahmoud Khalil Al-Husary" },
+  {
+    id: "Minshawy_Murattal_128kbps",
+    ar: "محمد صديق المنشاوي",
+    en: "Mohamed Siddiq Al-Minshawi",
+  },
+];
+
+export function ayahAudioUrl(reciter: string, surah: number, ayah: number) {
+  const s = String(surah).padStart(3, "0");
+  const a = String(ayah).padStart(3, "0");
+  return `https://everyayah.com/data/${reciter}/${s}${a}.mp3`;
+}
+
+type Props = { surah: number; ayah: number; isArabic: boolean };
+
+export default function AyahPlayer({ surah, ayah, isArabic }: Props) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [reciter, setReciter] = useState(RECITERS[0].id);
+  const [playing, setPlaying] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  // Stop and reset whenever the ayah or the reciter changes.
+  useEffect(() => {
+    const el = audioRef.current;
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+    }
+    setPlaying(false);
+    setFailed(false);
+  }, [surah, ayah, reciter]);
+
+  function toggle() {
+    const el = audioRef.current;
+    if (!el) return;
+    if (playing) {
+      el.pause();
+      return;
+    }
+    setFailed(false);
+    el.play().catch(() => setFailed(true));
+  }
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-center gap-3">
+      <button
+        onClick={toggle}
+        className="rounded-full bg-[#187762] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#145f4f]"
+        aria-label={isArabic ? "استمع إلى الآية" : "Listen to the ayah"}
+      >
+        {playing
+          ? isArabic
+            ? "⏸ إيقاف"
+            : "⏸ Pause"
+          : isArabic
+            ? "🔊 استمع إلى الشيخ"
+            : "🔊 Listen to the reciter"}
+      </button>
+
+      <select
+        value={reciter}
+        onChange={(e) => setReciter(e.target.value)}
+        className="rounded-full border border-[#e4e0d5] bg-white px-3 py-2 text-sm text-gray-700"
+        aria-label={isArabic ? "اختر القارئ" : "Choose reciter"}
+      >
+        {RECITERS.map((r) => (
+          <option key={r.id} value={r.id}>
+            {isArabic ? r.ar : r.en}
+          </option>
+        ))}
+      </select>
+
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={audioRef}
+        src={ayahAudioUrl(reciter, surah, ayah)}
+        preload="none"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        onError={() => {
+          setPlaying(false);
+          setFailed(true);
+        }}
+      />
+
+      {failed && (
+        <p className="w-full text-xs font-semibold text-red-600">
+          {isArabic
+            ? "تعذّر تشغيل الصوت الآن. تحقق من الاتصال أو جرّب قارئًا آخر."
+            : "Could not play the audio right now. Check your connection or try another reciter."}
+        </p>
+      )}
+    </div>
+  );
+}

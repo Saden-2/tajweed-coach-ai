@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import AyahPlayer from "./AyahPlayer";
 import {
   analysisSupported,
   analyzeRecitation,
@@ -283,6 +284,15 @@ export default function RecitationPanel({
               {isArabic ? "▶" : "▷"}
             </button>
           </div>
+        )}
+
+        {/* Listen to a professional reciter first, then record. */}
+        {inScope && supported && (
+          <AyahPlayer
+            surah={surahNumber}
+            ayah={selectedAyah}
+            isArabic={isArabic}
+          />
         )}
 
         {!inScope && (
