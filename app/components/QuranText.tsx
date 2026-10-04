@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type Word = {
   id: number;
@@ -64,10 +64,63 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
     } catch {
       /* ignore */
     }
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setMode("flow");
-    }
   }, []);
+
+  // Exact-fit mushaf page: we measure the real width of every line and pick
+  // the largest font size at which the widest line fills the container, so
+  // each line runs edge to edge like the printed page (any phone width).
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [fitPx, setFitPx] = useState<number | null>(null);
+  const [fullLines, setFullLines] = useState<number[]>([]);
+
+  useLayoutEffect(() => {
+    if (mode !== "page" || loadedPage === null) return;
+
+    function fit() {
+      const box = containerRef.current;
+      if (!box) return;
+      const W = box.clientWidth;
+      const lines = Array.from(
+        box.querySelectorAll<HTMLElement>("[data-line]")
+      );
+      if (!W || lines.length === 0) return;
+
+      const measured = lines.map((el) => {
+        const kids = Array.from(el.children) as HTMLElement[];
+        const glyphs = kids.reduce(
+          (sum, k) => sum + k.getBoundingClientRect().width,
+          0
+        );
+        const gaps = Math.max(0, kids.length - 1) * 2; // gap-[2px]
+        return { n: Number(el.dataset.line), glyphs, gaps };
+      });
+
+      const sample = box.querySelector("[data-w]");
+      const current = sample
+        ? parseFloat(getComputedStyle(sample).fontSize) || 28
+        : 28;
+      // Largest font that keeps every line within W (0.5% safety margin).
+      let next = Infinity;
+      for (const m of measured) {
+        if (m.glyphs <= 0) continue;
+        next = Math.min(next, (current * (W * 0.995 - m.gaps)) / m.glyphs);
+      }
+      if (!isFinite(next)) return;
+      next = Math.max(14, Math.min(next, 80));
+
+      const ratio = next / current;
+      setFullLines(
+        measured
+          .filter((m) => m.glyphs * ratio + m.gaps >= W * 0.9)
+          .map((m) => m.n)
+      );
+      setFitPx((prev) => (prev !== null && Math.abs(prev - next) < 0.3 ? prev : next));
+    }
+
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [mode, loadedPage, currentPage, scaleIdx, ayahs.length]);
 
   function changeMode(next: "page" | "flow") {
     setMode(next);
@@ -196,7 +249,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-3 py-6 md:px-8">
+    <div className="mx-auto w-full max-w-5xl px-1 py-4 md:px-8 md:py-6">
 
       {/* طريقة العرض - Reading mode */}
       <div className="mb-3 flex justify-center">
@@ -272,8 +325,8 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
           border
           border-[#e5e1d8]
           bg-[#fffdf7]
-          px-2
-          py-8
+          px-1
+          py-6
           shadow-sm
           md:min-h-[800px]
           md:px-10
@@ -282,7 +335,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
         style={{
           borderColor: "#c9a24b",
           borderStyle: "double",
-          borderWidth: "5px",
+          borderWidth: "4px",
           boxShadow: "inset 0 0 0 2px #fffdf7, inset 0 0 0 3px #187762aa",
         }}
       >
@@ -293,6 +346,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
         ) : (
           <div className="overflow-x-auto">
           <div
+            ref={containerRef}
             className="mx-auto text-center text-[#123d35]"
             style={{
               containerType: "inline-size",
@@ -367,15 +421,14 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
               return (
                 <div
                   key={lineNumber}
+                  data-line={lineNumber}
                   dir="rtl"
-                  className="
-                    flex
-                    items-center
-                    justify-center
-                    gap-[2px]
-                    whitespace-nowrap
-                  "
-                  style={{ minHeight: `min(${66 * SCALES[scaleIdx]}px, 9.2cqw)` }}
+                  className={`flex items-center gap-[2px] whitespace-nowrap ${
+                    fullLines.includes(lineNumber)
+                      ? "justify-between"
+                      : "justify-center"
+                  }`}
+                  style={{ minHeight: `${(fitPx ?? 28) * 1.75}px` }}
                 >
                   {lineWords.map((word) => {
                     const isEnd = word.charTypeName === "end";
@@ -391,7 +444,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                           key={word.id}
                           style={{
                             fontFamily: `p${currentPage}-v2`,
-                            fontSize: `min(${34 * SCALES[scaleIdx]}px, 4.2cqw)`,
+                            fontSize: `${(fitPx ?? 28) * 0.68}px`,
                           }}
                           dangerouslySetInnerHTML={{
                             __html: word.codeV2 || word.text || "",
@@ -403,9 +456,10 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                     return (
                       <span
                         key={word.id}
+                        data-w="1"
                         style={{
                           fontFamily: `p${currentPage}-v2`,
-                          fontSize: `min(${48 * SCALES[scaleIdx]}px, 5.7cqw)`,
+                          fontSize: `${fitPx ?? 28}px`,
                           lineHeight: 1.7,
                         }}
                         dangerouslySetInnerHTML={{
