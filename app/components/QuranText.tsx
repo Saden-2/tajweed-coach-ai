@@ -165,8 +165,8 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
           border
           border-[#e5e1d8]
           bg-[#fffdf7]
-          px-4
-          py-10
+          px-2
+          py-8
           shadow-sm
           md:min-h-[800px]
           md:px-10
@@ -178,7 +178,10 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
             جاري تحميل خط المصحف...
           </div>
         ) : (
-          <div className="mx-auto max-w-4xl text-center text-[#123d35]">
+          <div
+            className="mx-auto max-w-4xl text-center text-[#123d35]"
+            style={{ containerType: "inline-size" }}
+          >
 
             {startsHere && (
               <div className="mb-6">
@@ -218,12 +221,12 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                   dir="rtl"
                   className="
                     flex
-                    min-h-[58px]
                     items-center
                     justify-center
                     gap-[2px]
                     whitespace-nowrap
                   "
+                  style={{ minHeight: "min(58px, 7.4cqw)" }}
                 >
                   {lineWords.map((word) => {
                     const isEnd = word.charTypeName === "end";
@@ -239,7 +242,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                           key={word.id}
                           style={{
                             fontFamily: `p${currentPage}-v2`,
-                            fontSize: "30px",
+                            fontSize: "min(30px, 3.4cqw)",
                           }}
                           dangerouslySetInnerHTML={{
                             __html: word.codeV2 || word.text || "",
@@ -253,7 +256,7 @@ export default function QuranText({ surahNumber, surahName }: QuranTextProps) {
                         key={word.id}
                         style={{
                           fontFamily: `p${currentPage}-v2`,
-                          fontSize: "clamp(30px, 4vw, 44px)",
+                          fontSize: "min(44px, 4.6cqw)",
                           lineHeight: 1.7,
                         }}
                         dangerouslySetInnerHTML={{

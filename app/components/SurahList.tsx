@@ -147,7 +147,7 @@ export default function SurahList({
   );
 
   return (
-    <aside className="flex h-screen w-72 flex-col border-r border-gray-200 bg-white p-5">
+    <aside className="flex h-screen w-full flex-col border-r border-gray-200 bg-white p-5 md:w-72">
 
       <div className="mb-5">
         <h2 className="mb-4 text-lg font-bold text-[#123d35]">
