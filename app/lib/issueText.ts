@@ -50,6 +50,12 @@ const VALUES: Record<string, string> = {
 
 const QUOTED = /«(.+?)»/g;
 
+// A phoneme that is only a combining mark (e.g. a vowel sign) would render as
+// an invisible/odd glyph on its own; show it on a dotted circle instead.
+function visible(symbol: string): string {
+  return /^[\u064B-\u065F\u0670]+$/.test(symbol) ? `\u25CC${symbol}` : symbol;
+}
+
 export function localizeIssue(
   title: string | null,
   description: string | null,
@@ -66,7 +72,7 @@ export function localizeIssue(
   if (title === "صوت زائد" && quoted.length === 1) {
     return {
       title: enTitle,
-      description: `A sound “${quoted[0]}” was heard that is not in the text.`,
+      description: `A sound “${visible(quoted[0])}” was heard that is not in the text.`,
     };
   }
 

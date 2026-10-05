@@ -516,10 +516,18 @@ function WordFeedbackCard({
       </p>
       <p className="mt-1 text-xs font-semibold">{label}</p>
       {issue.title && (
-        <p className="mt-1 text-xs font-bold">{issue.title}</p>
+        <p
+          dir={isArabic ? "rtl" : "ltr"}
+          className={`mt-1 text-xs font-bold ${isArabic ? "" : "text-left"}`}
+        >
+          {issue.title}
+        </p>
       )}
       {issue.description && (
-        <p className="mt-1 text-xs leading-relaxed opacity-90">
+        <p
+          dir={isArabic ? "rtl" : "ltr"}
+          className={`mt-1 text-xs leading-relaxed opacity-90 ${isArabic ? "" : "text-left"}`}
+        >
           {issue.description}
         </p>
       )}
